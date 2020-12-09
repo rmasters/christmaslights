@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+<head>
+	<title>home alone simulator 2020</title>
+<style>
+* { box-sizing: border-box; }
+
+body {
+	background: #006E2E;
+	font: 1.00em georgia;
+}
+
+main {
+	background: #FF1A00;
+	border-radius: 1.00em;
+	margin: 1.0rem auto;
+	width: 75vw;
+	max-width: 600px;
+	padding: 0.50rem 1.00rem;
+}
+
+.message {
+	background: #39739d;
+	border-radius: 0.25em;
+	color: white;
+	text-shadow: 1px 1px 1px black;
+	margin: 0.50em 0;
+	opacity: 1;
+	padding: 0.50em;
+	transition: opacity .25s ease-in-out;
+}
+
+.message--error {
+	background: #B02B2C;
+	color: white;
+}
+
+.message--hidden {
+	opacity: 0;
+}
+
+form .inline {
+	display: flex;
+}
+
+form select, form button {
+	font-size: 1.50rem;
+	font-family: georgia;
+}
+
+form .inline select {
+	flex: 1;
+}
+
+form button {
+	font-weight: bold;
+	text-decoration: underline;
+}
+</style>
+</head>
+<body>
+	<main>
+		<h1>christmas lights</h1>
+		<form data-ajax data-action="/colour" data-method="post">
+			<div class="inline">
+				<select name="colour" data-sendit>
+					{% for colour in colours %}
+					<option value="{{ colour }}">{{ colour }}</option>
+					{% endfor %}
+				</select>
+				<button type="submit">dazzle me</button>
+			</div>
+
+			<div data-response="success" class="message message--hidden"></div>
+			<div data-response="error" class="message message--error message--hidden"></div>
+		</form>
+
+		<img src="https://media.giphy.com/media/xT5LMrHa34WjOZS8OA/giphy.gif" rel="noreferrer">
+	</main>
+
+	<script>
+const flashIt = (element, message) => {
+	element.innerText = message;
+	element.classList.remove('message--hidden');
+	window.setTimeout(() => {
+		element.classList.add('message--hidden');
+		element.innerText = '';
+	}, 1500);
+};
+
+const ajaxForm = form => {
+	const action = form.dataset['action'];
+	const method = form.dataset['method'];
+
+	// The contents of a JSON key will be set in innerText in these containers
+	const responseContainers = {};
+	form.querySelectorAll('[data-response]').forEach(resp => {
+		responseContainers[resp.dataset['response']] = resp;
+	});
+
+	form.addEventListener('submit', event => {
+		event.preventDefault();
+
+		const formData = new FormData(event.target);
+		const data = Object.fromEntries(formData.entries());
+		
+		fetch(action, {
+			method: method,
+			body: JSON.stringify(data),
+			headers: { 'content-type': 'application/json' },
+		})
+		.then(response =>  response.json())
+		.then(data => {
+			// Place json response keys into responseContainers
+			for (let [key, value] of Object.entries(data)) {
+				if (key in responseContainers) {
+					flashIt(responseContainers[key], value);
+				}
+			}
+
+			if ('colour' in data) {
+				document.body.style.backgroundColor = '#' + data['colour'];
+			}
+		})
+		.catch(err => {
+			console.log(err);
+			flashIt(responseContainers['error'], "you broke it");
+		});
+	});
+
+	const shortcuts = form.querySelectorAll('[data-sendit]').forEach(elem => {
+		elem.addEventListener('change', event => form.dispatchEvent(new Event('submit')));
+	});
+};
+
+document.querySelectorAll('form[data-ajax]').forEach(form => ajaxForm(form));
+	</script>
+</body>
+</html>
